@@ -119,7 +119,7 @@ const callOpenRouter = async (prompt) => {
 const callAIWithFailover = async (prompt) => {
   // Define providers in priority order
 const providers = [
-  { name: 'mistral',    fn: callMistral },
+  //{ name: 'mistral',    fn: callMistral },
   { name: 'gemini',     fn: callGemini },
   { name: 'cohere',     fn: callCohere },
   { name: 'openrouter', fn: callOpenRouter }

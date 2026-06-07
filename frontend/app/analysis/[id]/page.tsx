@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import Navbar from '@/components/ui/Navbar'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/lib/AuthContext'
 import api from '@/lib/api'
 import { CheckCircle, XCircle, AlertCircle, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react'
 import { AnalysisResult } from '@/types'
@@ -11,52 +10,64 @@ import { AnalysisResult } from '@/types'
 export default function AnalysisPage() {
   const params = useParams()
   const router = useRouter()
-  const { user, logout } = useAuth()
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showInterviewQ, setShowInterviewQ] = useState(false)
 
-  const handleLogout = () => { logout(); router.push('/login') }
+  const checkLabels: Record<string, string> = {
+    hasEmail:       'Email present',
+    hasPhone:       'Phone present',
+    hasDates:       'Dates included',
+    hasSections:    'Clear sections',
+    goodLength:     'Good length',
+    hasActionVerbs: 'Action verbs',
+    noSpecialChars: 'No special chars',
+    hasMetrics:     'Quantified results',
+    hasProfileLink: 'GitHub / LinkedIn',
+  }
 
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
         const response = await api.get(`/api/analysis/${params.id}`)
-        if (response.data.success) 
-        {
+        if (response.data.success) {
           const data = response.data.analysis
-
-setAnalysis({
-  ...data,
-  // Fix ATS mapping
-  ats: {
-    score: data.atsScore || 0,
-    rating: data.atsRating || 'Unknown',
-    keywordMatchPercent: data.atsKeywordMatch || 0,
-    issues: data.atsIssues || [],
-    suggestions: data.atsSuggestions || [],
-    passedChecks: data.atsPassedChecks || {
-      hasEmail: false,
-      hasPhone: false,
-      hasDates: false,
-      hasSections: false,
-      goodLength: false
-    }
-  },
-  // Fix analysis fields mapping
-  strengths: data.analysis?.strengths || [],
-  gaps: data.analysis?.gaps || [],
-  recommendations: data.analysis?.recommendations || [],
-  summary: data.analysis?.summary || '',
-  experienceLevel: data.analysis?.experienceLevel || 'mid',
-  hiringDecision: data.analysis?.hiringDecision || 'MAYBE',
-  redFlags: data.analysis?.redFlags || [],
-  interviewQuestions: data.analysis?.interviewQuestions || [],
-  scoringDetails: data.analysis?.scoringDetails || {}
-})
+          setAnalysis({
+            ...data,
+            ats: {
+              score: data.atsScore || 0,
+              rating: data.atsRating || 'Unknown',
+              keywordMatchPercent: data.atsKeywordMatch || 0,
+              issues: data.atsIssues || [],
+              suggestions: data.atsSuggestions || [],
+              passedChecks: data.atsPassedChecks || {
+                hasEmail: false,
+                hasPhone: false,
+                hasDates: false,
+                hasSections: false,
+                goodLength: false,
+                hasActionVerbs: false,
+                noSpecialChars: false,
+                hasMetrics: false,
+                hasProfileLink: false,
+              }
+            },
+            strengths: data.analysis?.strengths || [],
+            gaps: data.analysis?.gaps || [],
+            recommendations: data.analysis?.recommendations || [],
+            summary: data.analysis?.summary || '',
+            experienceLevel: data.analysis?.experienceLevel || 'mid',
+            hiringDecision: data.analysis?.hiringDecision || 'MAYBE',
+            redFlags: data.analysis?.redFlags || [],
+            interviewQuestions: data.analysis?.interviewQuestions || [],
+            scoringDetails: data.analysis?.scoringDetails || {}
+          })
         }
-      } catch { router.push('/dashboard') }
-      finally { setIsLoading(false) }
+      } catch {
+        router.push('/dashboard')
+      } finally {
+        setIsLoading(false)
+      }
     }
     fetchAnalysis()
   }, [params.id])
@@ -71,7 +82,6 @@ setAnalysis({
   if (!analysis) return null
 
   const scoreColor = (s: number) => s >= 75 ? '#10B981' : s >= 50 ? '#F59E0B' : '#EF4444'
-  const scoreBg = (s: number) => s >= 75 ? '#D1FAE5' : s >= 50 ? '#FEF3C7' : '#FEE2E2'
   const decisionStyle = (d: string) => {
     if (d === 'HIRE') return { color: '#065F46', background: '#D1FAE5', border: '1px solid #A7F3D0' }
     if (d === 'MAYBE') return { color: '#92400E', background: '#FEF3C7', border: '1px solid #FDE68A' }
@@ -79,27 +89,6 @@ setAnalysis({
   }
 
   const card = { background: 'white', border: '1px solid rgba(0,0,0,0.07)', borderRadius: 12, padding: 24 }
-  // Add this mapping object before the return
-const checkLabels: Record<string, string> = {
-  hasEmail: 'Email present',
-  hasPhone: 'Phone present',
-  hasDates: 'Dates included',
-  hasSections: 'Clear sections',
-  goodLength: 'Good length',
-  hasActionVerbs: 'Action verbs',
-  noSpecialChars: 'No special chars'
-}
-
-// Then in the display:
-{Object.entries(analysis.ats.passedChecks).map(([key, passed]) => (
-  <div key={key} className={`text-center text-xs py-2 px-3 rounded-lg border ${
-    passed
-      ? 'bg-green-50 border-green-200 text-green-700'
-      : 'bg-red-50 border-red-200 text-red-600'
-  }`}>
-    {passed ? '✓' : '✗'} {checkLabels[key] || key}
-  </div>
-))}
 
   return (
     <div style={{ minHeight: '100vh', background: '#F7F6F2' }}>
@@ -184,7 +173,7 @@ const checkLabels: Record<string, string> = {
             {[
               { label: 'Matched', items: analysis.skills?.matched, color: '#10B981', bg: '#D1FAE5', border: '#A7F3D0' },
               { label: 'Missing', items: analysis.skills?.missing, color: '#EF4444', bg: '#FEE2E2', border: '#FECACA' },
-              { label: 'Bonus', items: analysis.skills?.bonus, color: '#4F46E5', bg: '#EEF2FF', border: '#C7D2FE' },
+              { label: 'Bonus',   items: analysis.skills?.bonus,   color: '#4F46E5', bg: '#EEF2FF', border: '#C7D2FE' },
             ].map(({ label, items, color, bg, border }) => (
               <div key={label}>
                 <p style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color, marginBottom: 10 }}>
@@ -223,10 +212,20 @@ const checkLabels: Record<string, string> = {
             </span>
           </div>
           {analysis.ats?.passedChecks && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px,1fr))', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: 8, marginBottom: 20 }}>
               {Object.entries(analysis.ats.passedChecks).map(([key, passed]) => (
-                <div key={key} style={{ textAlign: 'center', fontSize: 12, padding: '8px 4px', borderRadius: 8, background: passed ? '#D1FAE5' : '#FEE2E2', color: passed ? '#065F46' : '#7F1D1D', border: `1px solid ${passed ? '#A7F3D0' : '#FECACA'}` }}>
-                  {passed ? '✓' : '✗'} {key.replace(/([A-Z])/g, ' $1').replace('has ', '')}
+                <div key={key} style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 12px', borderRadius: 8, fontSize: 12,
+                  background: passed ? '#F0FDF4' : '#FEF2F2',
+                  color: passed ? '#065F46' : '#7F1D1D',
+                  border: `1px solid ${passed ? '#BBF7D0' : '#FECACA'}`,
+                }}>
+                  {passed
+                    ? <CheckCircle size={13} color="#10B981" style={{ flexShrink: 0 }} />
+                    : <XCircle size={13} color="#EF4444" style={{ flexShrink: 0 }} />
+                  }
+                  {checkLabels[key] || key}
                 </div>
               ))}
             </div>

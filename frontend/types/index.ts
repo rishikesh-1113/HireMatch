@@ -22,6 +22,8 @@ export interface ATSResult {
   score: number
   rating: string
   keywordMatchPercent: number
+    profile: 'fresher' | 'experienced' 
+  aiPowered: boolean
   issues: string[]
   suggestions: string[]
   passedChecks: {
